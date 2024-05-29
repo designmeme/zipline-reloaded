@@ -657,16 +657,11 @@ cdef class BarData:
 
             dt_label = 'date' if frequency == '1d' else 'date_time'
 
-            __df = pd.concat(df_dict, keys=df_dict.keys(), names=['fields', dt_label])
-            print(1, __df)
-            print(2, __df.stack(dropna=False))
-            print(3, __df.stack(future_stack=True))
             df = (pd.concat(df_dict,
                             keys=df_dict.keys(),
                             names=['fields', dt_label])
-                  .stack(dropna=False)  # ensure we return all fields/assets/dates despite missing values
+                  .stack(future_stack=True)  # ensure we return all fields/assets/dates despite missing values
                   .unstack(level='fields'))
-            print(4, df)
             df.index.set_names([dt_label, 'asset'])
             return df.sort_index()
 
