@@ -96,8 +96,11 @@ def _run(
         bundle_timestamp,
     )
 
-    if trading_calendar is None:
-        trading_calendar = get_calendar("XNYS")
+    # set trading_calendar
+    if bundle_data.equity_daily_bar_reader is not None:
+        trading_calendar = bundle_data.equity_daily_bar_reader.trading_calendar
+    else:
+        trading_calendar = bundle_data.equity_minute_bar_reader.trading_calendar
 
     # date parameter validation
     if trading_calendar.sessions_distance(start, end) < 1:
