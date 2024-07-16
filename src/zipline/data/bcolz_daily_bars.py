@@ -14,6 +14,8 @@
 import warnings
 from functools import partial
 
+from .bcolz_minute_bars import OHLC_RATIO
+
 with warnings.catch_warnings():  # noqa
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from bcolz import carray, ctable
@@ -339,7 +341,7 @@ class BcolzDailyBarWriter:
             return raw_data
 
         winsorise_uint32(raw_data, invalid_data_behavior, "volume", *OHLC)
-        processed = (raw_data[list(OHLC)] * 1000).round().astype("uint32")
+        processed = (raw_data[list(OHLC)] * OHLC_RATIO).round().astype("uint32")
         dates = raw_data.index.values.astype("datetime64[s]")
         check_uint32_safe(dates.max().view(np.int64), "day")
         processed["day"] = dates.astype("uint32")
@@ -395,7 +397,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
 
     The data in these columns is interpreted as follows:
 
-    - Price columns ('open', 'high', 'low', 'close') are interpreted as 1000 *
+    - Price columns ('open', 'high', 'low', 'close') are interpreted as OHLC_RATIO(1000) *
       as-traded dollar value.
     - Volume is interpreted as as-traded volume.
     - Day is interpreted as seconds since midnight UTC, Jan 1, 1970.
@@ -425,7 +427,6 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
         # Need to test keeping the entire array in memory for the course of a
         # process first.
         self._spot_cols = {}
-        self.PRICE_ADJUSTMENT_FACTOR = 0.001
         self._read_all_threshold = read_all_threshold
 
     @lazyval
@@ -668,7 +669,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
             if price == 0:
                 return np.nan
             else:
-                return price * 0.001
+                return price / OHLC_RATIO
         else:
             return price
 

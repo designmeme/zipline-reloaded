@@ -364,7 +364,7 @@ class BcolzMinuteBarWriter:
     Each individual asset's data is stored as a bcolz table with a column for
     each pricing field: (open, high, low, close, volume)
 
-    The open, high, low, and close columns are integers which are 1000 times
+    The open, high, low, and close columns are integers which are OHLC_RATIO (1000) times
     the quoted price, so that the data can represented and stored as an
     np.uint32, supporting market prices quoted up to the thousands place.
 
