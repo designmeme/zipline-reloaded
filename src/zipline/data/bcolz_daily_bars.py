@@ -14,8 +14,6 @@
 import warnings
 from functools import partial
 
-from .bcolz_minute_bars import OHLC_RATIO
-
 with warnings.catch_warnings():  # noqa
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     from bcolz import carray, ctable
@@ -39,6 +37,7 @@ from ._equities import _compute_row_slices, _read_bcolz_data
 logger = logging.getLogger("UsEquityPricing")
 
 OHLC = frozenset(["open", "high", "low", "close"])
+OHLC_RATIO = 1000
 US_EQUITY_PRICING_BCOLZ_COLUMNS = (
     "open",
     "high",
