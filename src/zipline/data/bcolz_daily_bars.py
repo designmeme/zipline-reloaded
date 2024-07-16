@@ -30,7 +30,7 @@ from zipline.utils.cli import maybe_show_progress
 from zipline.utils.functional import apply
 from zipline.utils.input_validation import expect_element
 from zipline.utils.memoize import lazyval
-from zipline.utils.numpy_utils import float64_dtype, iNaT, uint32_dtype
+from zipline.utils.numpy_utils import float64_dtype, iNaT, int64_dtype
 
 from ._equities import _compute_row_slices, _read_bcolz_data
 
@@ -47,34 +47,34 @@ US_EQUITY_PRICING_BCOLZ_COLUMNS = (
     "id",
 )
 
-UINT32_MAX = np.iinfo(np.uint32).max
+INT64_MAX = np.iinfo(np.int64).max
 
 
-def check_uint32_safe(value, colname):
-    if value >= UINT32_MAX:
+def check_int64_safe(value, colname):
+    if value >= INT64_MAX:
         raise ValueError("Value %s from column '%s' is too large" % (value, colname))
 
 
 @expect_element(invalid_data_behavior={"warn", "raise", "ignore"})
-def winsorise_uint32(df, invalid_data_behavior, column, *columns):
-    """Drops any record where a value would not fit into a uint32.
+def winsorise_int64(df, invalid_data_behavior, column, *columns):
+    """Drops any record where a value would not fit into a int64.
 
     Parameters
     ----------
     df : pd.DataFrame
         The dataframe to winsorise.
     invalid_data_behavior : {'warn', 'raise', 'ignore'}
-        What to do when data is outside the bounds of a uint32.
+        What to do when data is outside the bounds of a int64.
     *columns : iterable[str]
         The names of the columns to check.
 
     Returns
     -------
     truncated : pd.DataFrame
-        ``df`` with values that do not fit into a uint32 zeroed out.
+        ``df`` with values that do not fit into a int64 zeroed out.
     """
     columns = list((column,) + columns)
-    mask = df[columns] > UINT32_MAX
+    mask = df[columns] > INT64_MAX
 
     if invalid_data_behavior != "ignore":
         mask |= df[columns].isnull()
@@ -87,7 +87,7 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
     if mv.any():
         if invalid_data_behavior == "raise":
             raise ValueError(
-                "%d values out of bounds for uint32: %r"
+                "%d values out of bounds for int64: %r"
                 % (
                     mv.sum(),
                     df[mask.any(axis=1)],
@@ -96,7 +96,7 @@ def winsorise_uint32(df, invalid_data_behavior, column, *columns):
         if invalid_data_behavior == "warn":
             warnings.warn(
                 "Ignoring %d values because they are out of bounds for"
-                " uint32:\n %r"
+                " int64:\n %r"
                 % (
                     mv.sum(),
                     df[mask.any(axis=1)],
@@ -177,7 +177,7 @@ class BcolzDailyBarWriter:
             Whether or not to show a progress bar while writing.
         invalid_data_behavior : {'warn', 'raise', 'ignore'}, optional
             What to do when data is encountered that is outside the range of
-            a uint32.
+            a int64.
 
         Returns
         -------
@@ -206,7 +206,7 @@ class BcolzDailyBarWriter:
             Whether or not to show a progress bar while writing.
         invalid_data_behavior : {'warn', 'raise', 'ignore'}
             What to do when data is encountered that is outside the range of
-            a uint32.
+            a int64.
         """
         read = partial(
             pd.read_csv,
@@ -233,7 +233,7 @@ class BcolzDailyBarWriter:
 
         # Maps column name -> output carray.
         columns = {
-            k: carray(np.array([], dtype=uint32_dtype))
+            k: carray(np.array([], dtype=int64_dtype))
             for k in US_EQUITY_PRICING_BCOLZ_COLUMNS
         }
 
@@ -258,7 +258,7 @@ class BcolzDailyBarWriter:
                     # We know what the content of this column is, so don't
                     # bother reading it.
                     columns["id"].append(
-                        np.full((nrows,), asset_id, dtype="uint32"),
+                        np.full((nrows,), asset_id, dtype="int64"),
                     )
                     continue
 
@@ -338,12 +338,12 @@ class BcolzDailyBarWriter:
             # we already have a ctable so do nothing
             return raw_data
 
-        winsorise_uint32(raw_data, invalid_data_behavior, "volume", *OHLC)
-        processed = (raw_data[list(OHLC)] * 1000).round().astype("uint32")
+        winsorise_int64(raw_data, invalid_data_behavior, "volume", *OHLC)
+        processed = (raw_data[list(OHLC)] * 1000).round().astype("int64")
         dates = raw_data.index.values.astype("datetime64[s]")
-        check_uint32_safe(dates.max().view(np.int64), "day")
-        processed["day"] = dates.astype("uint32")
-        processed["volume"] = raw_data.volume.astype("uint32")
+        check_int64_safe(dates.max().view(np.int64), "day")
+        processed["day"] = dates.astype("int64")
+        processed["volume"] = raw_data.volume.astype("int64")
         return ctable.fromdataframe(processed)
 
 
@@ -571,7 +571,7 @@ class BcolzDailyBarReader(CurrencyAwareSessionBarReader):
 
         Returns
         -------
-        array (uint32)
+        array (int64)
             Full read array of the carray in the daily_bar_table with the
             given colname.
         """

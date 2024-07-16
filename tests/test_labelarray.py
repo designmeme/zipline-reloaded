@@ -463,7 +463,7 @@ class TestLabelArray:
         assert arr.itemsize == 4
         check_roundtrip(arr)
 
-        # uint32 inference
+        # int64 inference
         arr = LabelArray(categories, missing_value=categories[0])
         assert arr.itemsize == 4
         check_roundtrip(arr)

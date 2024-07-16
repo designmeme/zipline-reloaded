@@ -33,7 +33,7 @@ from zipline.data._minute_bar_internal import (
     minute_value,
 )
 from zipline.data.bar_reader import BarReader, NoDataForSid, NoDataOnDate
-from zipline.data.bcolz_daily_bars import check_uint32_safe
+from zipline.data.bcolz_daily_bars import check_int64_safe
 from zipline.gens.sim_engine import NANOS_IN_MINUTE
 from zipline.utils.calendar_utils import get_calendar
 from zipline.utils.cli import maybe_show_progress
@@ -107,19 +107,19 @@ def _sid_subdir_path(sid):
 
 
 def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
-    """Adapt OHLCV columns into uint32 columns.
+    """Adapt OHLCV columns into int64 columns.
 
     Parameters
     ----------
     cols : dict
         A dict mapping each column name (open, high, low, close, volume)
-        to a float column to convert to uint32.
+        to a float column to convert to int64.
     scale_factor : int
-        Factor to use to scale float values before converting to uint32.
+        Factor to use to scale float values before converting to int64.
     sid : int
         Sid of the relevant asset, for logging.
     invalid_data_behavior : str
-        Specifies behavior when data cannot be converted to uint32.
+        Specifies behavior when data cannot be converted to int64.
         If 'raise', raises an exception.
         If 'warn', logs a warning and filters out incompatible values.
         If 'ignore', silently filters out incompatible values.
@@ -140,7 +140,7 @@ def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
         max_val = scaled_col.max()
 
         try:
-            check_uint32_safe(max_val, col_name)
+            check_int64_safe(max_val, col_name)
         except ValueError:
             if invalid_data_behavior == "raise":
                 raise
@@ -148,7 +148,7 @@ def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
             if invalid_data_behavior == "warn":
                 logger.warning(
                     "Values for sid={}, col={} contain some too large for "
-                    "uint32 (max={}), filtering them out",
+                    "int64 (max={}), filtering them out",
                     sid,
                     col_name,
                     max_val,
@@ -156,14 +156,14 @@ def convert_cols(cols, scale_factor, sid, invalid_data_behavior):
 
             # We want to exclude all rows that have an unsafe value in
             # this column.
-            exclude_mask &= scaled_col >= np.iinfo(np.uint32).max
+            exclude_mask &= scaled_col >= np.iinfo(np.int64).max
 
-    # Convert all cols to uint32.
-    opens = scaled_opens.astype(np.uint32)
-    highs = scaled_highs.astype(np.uint32)
-    lows = scaled_lows.astype(np.uint32)
-    closes = scaled_closes.astype(np.uint32)
-    volumes = cols["volume"].astype(np.uint32)
+    # Convert all cols to int64.
+    opens = scaled_opens.astype(np.int64)
+    highs = scaled_highs.astype(np.int64)
+    lows = scaled_lows.astype(np.int64)
+    closes = scaled_closes.astype(np.int64)
+    volumes = cols["volume"].astype(np.int64)
 
     # Exclude rows with unsafe values by setting to zero.
     opens[exclude_mask] = 0
@@ -281,7 +281,7 @@ class BcolzMinuteBarMetadata:
         ohlc_ratio : int
             The default ratio by which to multiply the pricing data to
             convert the floats from floats to an integer to fit within
-            the np.uint32. If ohlc_ratios_per_sid is None or does not
+            the np.int64. If ohlc_ratios_per_sid is None or does not
             contain a mapping for a given sid, this ratio is used.
         ohlc_ratios_per_sid : dict
              A dict mapping each sid in the output to the factor by
@@ -335,13 +335,13 @@ class BcolzMinuteBarWriter:
         The last trading session in the data set.
     default_ohlc_ratio : int, optional
         The default ratio by which to multiply the pricing data to
-        convert from floats to integers that fit within np.uint32. If
+        convert from floats to integers that fit within np.int64. If
         ohlc_ratios_per_sid is None or does not contain a mapping for a
         given sid, this ratio is used. Default is OHLC_RATIO (1000).
     ohlc_ratios_per_sid : dict, optional
         A dict mapping each sid in the output to the ratio by which to
         multiply the pricing data to convert the floats from floats to
-        an integer to fit within the np.uint32.
+        an integer to fit within the np.int64.
     expectedlen : int, optional
         The expected length of the dataset, used when creating the initial
         bcolz ctable.
@@ -366,9 +366,9 @@ class BcolzMinuteBarWriter:
 
     The open, high, low, and close columns are integers which are 1000 times
     the quoted price, so that the data can represented and stored as an
-    np.uint32, supporting market prices quoted up to the thousands place.
+    np.int64, supporting market prices quoted up to the thousands place.
 
-    volume is a np.uint32 with no mutation of the tens place.
+    volume is a np.int64 with no mutation of the tens place.
 
     The 'index' for each individual asset are a repeating period of minutes of
     length `minutes_per_day` starting from each market open.
@@ -541,7 +541,7 @@ class BcolzMinuteBarWriter:
         if not os.path.exists(sid_containing_dirname):
             # Other sids may have already created the containing directory.
             os.makedirs(sid_containing_dirname)
-        initial_array = np.empty(0, np.uint32)
+        initial_array = np.empty(0, np.int64)
         table = ctable(
             rootdir=path,
             columns=[
@@ -572,7 +572,7 @@ class BcolzMinuteBarWriter:
         minute_offset = len(table) % self._minutes_per_day
         num_to_prepend = numdays * self._minutes_per_day - minute_offset
 
-        prepend_array = np.zeros(num_to_prepend, np.uint32)
+        prepend_array = np.zeros(num_to_prepend, np.int64)
         # Fill all OHLCV with zeros.
         table.append([prepend_array] * 5)
         table.flush()
@@ -785,11 +785,11 @@ class BcolzMinuteBarWriter:
 
         minutes_count = all_minutes_in_window.size
 
-        open_col = np.zeros(minutes_count, dtype=np.uint32)
-        high_col = np.zeros(minutes_count, dtype=np.uint32)
-        low_col = np.zeros(minutes_count, dtype=np.uint32)
-        close_col = np.zeros(minutes_count, dtype=np.uint32)
-        vol_col = np.zeros(minutes_count, dtype=np.uint32)
+        open_col = np.zeros(minutes_count, dtype=np.int64)
+        high_col = np.zeros(minutes_count, dtype=np.int64)
+        low_col = np.zeros(minutes_count, dtype=np.int64)
+        close_col = np.zeros(minutes_count, dtype=np.int64)
+        vol_col = np.zeros(minutes_count, dtype=np.int64)
 
         dt_ixs = np.searchsorted(
             all_minutes_in_window.values, pd.Index(dts).tz_localize(None).values
@@ -1218,7 +1218,7 @@ class BcolzMinuteBarReader(MinuteBarReader):
             if field != "volume":
                 out = np.full(shape, np.nan)
             else:
-                out = np.zeros(shape, dtype=np.uint32)
+                out = np.zeros(shape, dtype=np.int64)
 
             for i, sid in enumerate(sids):
                 carray = self._open_minute_file(field, sid)

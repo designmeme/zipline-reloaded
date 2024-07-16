@@ -676,7 +676,7 @@ class USEquityPricingLoaderTestCase(WithAdjustmentReader, ZiplineTestCase):
                 # FIXME: Make AdjustedArray properly support integral types.
                 assert_array_equal(
                     expected_adjusted_volumes,
-                    window.astype(np.uint32),
+                    window.astype(np.int64),
                 )
 
         # Verify that we checked up to the longest possible window.

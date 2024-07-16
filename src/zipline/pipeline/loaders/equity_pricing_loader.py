@@ -24,8 +24,6 @@ from .base import PipelineLoader
 from .utils import shift_dates
 from ..data.equity_pricing import EquityPricing
 
-UINT32_MAX = iinfo(uint32).max
-
 
 class EquityPricingLoader(implements(PipelineLoader)):
     """A PipelineLoader for loading daily OHLCV data.
