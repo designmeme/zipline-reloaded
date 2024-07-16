@@ -325,10 +325,10 @@ class TestPreprocess:
 
         expected_message = (
             "{qualname}() expected a value with dtype 'float64'"
-            " for argument 'a', but got 'int64' instead."
+            " for argument 'a', but got 'uint32' instead."
         ).format(qualname=qualname(foo))
         with pytest.raises(TypeError, match=re.escape(expected_message)):
-            foo(np.arange(3, dtype="int64"), good_c, good_c)
+            foo(np.arange(3, dtype="uint32"), good_c, good_c)
 
     def test_expect_dtypes_with_tuple(self):
 
@@ -347,10 +347,10 @@ class TestPreprocess:
 
         expected_message = (
             "{qualname}() expected a value with dtype 'datetime64[ns]' "
-            "or 'float64' for argument 'a', but got 'int64' instead."
+            "or 'float64' for argument 'a', but got 'uint32' instead."
         ).format(qualname=qualname(foo))
         with pytest.raises(TypeError, match=re.escape(expected_message)):
-            foo(np.arange(3, dtype="int64"), object())
+            foo(np.arange(3, dtype="uint32"), object())
 
     def test_expect_dtypes_custom_funcname(self):
 
@@ -363,10 +363,10 @@ class TestPreprocess:
 
         expected_message = (
             "Foo() expected a value with dtype 'datetime64[ns]' "
-            "or 'float64' for argument 'a', but got 'int64' instead."
+            "or 'float64' for argument 'a', but got 'uint32' instead."
         )
         with pytest.raises(TypeError, match=re.escape(expected_message)):
-            Foo(np.arange(3, dtype="int64"))
+            Foo(np.arange(3, dtype="uint32"))
 
     def test_ensure_timezone(self):
         @preprocess(tz=ensure_timezone)

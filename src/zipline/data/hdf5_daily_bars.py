@@ -156,12 +156,12 @@ DEFAULT_SCALING_FACTORS = {
 }
 
 
-def coerce_to_int64(a, scaling_factor):
+def coerce_to_uint32(a, scaling_factor):
     """
-    Returns a copy of the array as int64, applying a scaling factor to
+    Returns a copy of the array as uint32, applying a scaling factor to
     maintain precision if supplied.
     """
-    return (a * scaling_factor).round().astype("int64")
+    return (a * scaling_factor).round().astype("uint32")
 
 
 def days_and_sids_for_frames(frames):
@@ -250,7 +250,7 @@ class HDF5DailyBarWriter:
         scaling_factors : dict[str, float], optional
             A dict mapping each OHLCV field to a scaling factor, which
             is applied (as a multiplier) to the values of field to
-            efficiently store them as int64, while maintaining desired
+            efficiently store them as uint32, while maintaining desired
             precision. These factors are written to the file as metadata,
             which is consumed by the reader to adjust back to the original
             float values. Default is None, in which case
@@ -321,7 +321,7 @@ class HDF5DailyBarWriter:
         scaling_factors : dict[str, float], optional
             A dict mapping each OHLCV field to a scaling factor, which
             is applied (as a multiplier) to the values of field to
-            efficiently store them as int64, while maintaining desired
+            efficiently store them as uint32, while maintaining desired
             precision. These factors are written to the file as metadata,
             which is consumed by the reader to adjust back to the original
             float values. Default is None, in which case
@@ -399,7 +399,7 @@ class HDF5DailyBarWriter:
             frame.sort_index(inplace=True)
             frame.sort_index(axis="columns", inplace=True)
 
-            data = coerce_to_int64(
+            data = coerce_to_uint32(
                 frame.T.fillna(0).values,
                 scaling_factors[field],
             )
@@ -565,7 +565,7 @@ class HDF5DailyBarReader(CurrencyAwareSessionBarReader):
         # Allocate an extra row of space that will always contain null values.
         # We'll use that space to provide "data" for entries in ``assets`` that
         # are unknown to us.
-        full_buf = np.zeros((len(self.sids) + 1, n_dates), dtype=np.int64)
+        full_buf = np.zeros((len(self.sids) + 1, n_dates), dtype=np.uint32)
         # We'll only read values into this portion of the read buf.
         mutable_buf = full_buf[:-1]
 

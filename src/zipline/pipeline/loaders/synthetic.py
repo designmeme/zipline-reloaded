@@ -24,6 +24,8 @@ from zipline.utils.numpy_utils import (
 )
 
 
+UINT_32_MAX = np.iinfo(np.uint32).max
+
 
 def nanos_to_seconds(nanos):
     return nanos / (1000 * 1000 * 1000)
@@ -220,7 +222,7 @@ def make_bar_data(asset_info, calendar, holes=None):
         column_num('volume') = 4
 
     We use days since Jan 1, 2000 to guarantee that there are no collisions
-    while also the produced values smaller than INT64_MAX / 1000.
+    while also the produced values smaller than UINT32_MAX / 1000.
 
     For 'day' and 'id', we use the standard format expected by the base class.
 
@@ -268,11 +270,11 @@ def make_bar_data(asset_info, calendar, holes=None):
         data = np.full(
             (len(datetimes), len(US_EQUITY_PRICING_BCOLZ_COLUMNS)),
             asset_id * 100 * 1000,
-            dtype=np.int64,
+            dtype=np.uint32,
         )
 
         # Add 10,000 * column-index to OHLCV columns
-        data[:, :5] += np.arange(5, dtype=np.int64) * 1000
+        data[:, :5] += np.arange(5, dtype=np.uint32) * 1000
 
         # Add days since Jan 1 2001 for OHLCV columns.
         # TODO FIXME TZ MESS
@@ -280,11 +282,11 @@ def make_bar_data(asset_info, calendar, holes=None):
         if datetimes.tzinfo is None:
             data[:, :5] += np.array(
                 (datetimes.tz_localize("UTC") - PSEUDO_EPOCH_UTC).days
-            )[:, None].astype(np.int64)
+            )[:, None].astype(np.uint32)
         else:
             data[:, :5] += np.array((datetimes - PSEUDO_EPOCH_UTC).days)[
                 :, None
-            ].astype(np.int64)
+            ].astype(np.uint32)
 
         frame = DataFrame(
             data,
@@ -336,7 +338,7 @@ def expected_bar_values_2d(dates, assets, asset_info, colname, holes=None):
         - Locs defined in `holes`.
     """
     if colname == "volume":
-        dtype = np.int64
+        dtype = np.uint32
         missing = 0
     else:
         dtype = np.float64
@@ -384,8 +386,8 @@ class NullAdjustmentReader(SQLiteAdjustmentReader):
         writer = SQLiteAdjustmentWriter(conn, None, None)
         empty = DataFrame(
             {
-                "sid": np.array([], dtype=np.int64),
-                "effective_date": np.array([], dtype=np.int64),
+                "sid": np.array([], dtype=np.uint32),
+                "effective_date": np.array([], dtype=np.uint32),
                 "ratio": np.array([], dtype=float),
             }
         )

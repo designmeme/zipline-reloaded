@@ -265,7 +265,7 @@ class ContinuousFutureMinuteBarReader(SessionBarReader):
             if column != "volume":
                 out = np.full(shape, np.nan)
             else:
-                out = np.zeros(shape, dtype=np.int64)
+                out = np.zeros(shape, dtype=np.uint32)
             for i, asset in enumerate(assets):
                 partitions = partitions_by_asset[asset]
                 for sid, start, end, start_loc, end_loc in partitions:
